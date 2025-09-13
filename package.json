@@ -9,8 +9,7 @@
         "startjs": "tsc&&node dist/app.js",
         "git": "powershell -ExecutionPolicy Bypass -File ./ps/create_branch.ps1",
         "clearPort": "powershell -ExecutionPolicy Bypass -File ./ps/clear_port_9012.ps1",
-        "git2": "powershell -ExecutionPolicy Bypass -File ./ps/move_to_develop.ps1",
-        "deploy": "powershell -ExecutionPolicy Bypass -File ./ps/deployment.ps1"
+        "git2": "powershell -ExecutionPolicy Bypass -File ./ps/move_to_develop.ps1"
     },
     "dependencies": {
         "axios": "^1.6.8",
