@@ -1,12 +1,12 @@
 import express, { Router } from "express";
 import { MainRouter } from "./types";
-const root_router: Router = express.Router();
+const rootRouter: Router = express.Router();
 
-root_router.get("/", (req, res) => res.status(200).send("OK from root"));
-// root_router.use("/api/", (req, res) => res.status(200).send("OK from api root"));
+rootRouter.get("/", (req, res) => res.status(200).send("OK from root"));
+// rootRouter.use("/api/", (req, res) => res.status(200).send("OK from api root"));
 
-const main_router: MainRouter = (app) => {
-    app.use(root_router);
+const mainRouter: MainRouter = (app) => {
+    app.use(rootRouter);
 };
 
-export default main_router;
+export default mainRouter;

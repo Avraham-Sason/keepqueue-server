@@ -1,53 +1,53 @@
 import { StringObject } from "../types";
 
 export type QueryDocuments = (
-    collection_path: string,
-    field_name: string,
+    collectionPath: string,
+    fieldName: string,
     operator: FirebaseFirestore.WhereFilterOp,
     value: any
 ) => Promise<StringObject[]>;
 
 export type WhereCondition = {
-    field_name: string;
+    fieldName: string;
     operator: FirebaseFirestore.WhereFilterOp;
     value: any;
 };
 
-export type QueryDocumentsByConditions = (collection_path: string, where_conditions: WhereCondition[]) => Promise<StringObject[]>;
+export type QueryDocumentsByConditions = (collectionPath: string, whereConditions: WhereCondition[]) => Promise<StringObject[]>;
 
-export type QueryDocumentByConditions = (collection_path: string, where_conditions: WhereCondition[], log?: boolean) => Promise<StringObject>;
+export type QueryDocumentByConditions = (collectionPath: string, whereConditions: WhereCondition[], log?: boolean) => Promise<StringObject>;
 
 export type QueryDocument = (
-    collection_path: string,
-    field_name: string,
+    collectionPath: string,
+    fieldName: string,
     operator: FirebaseFirestore.WhereFilterOp,
     value: any,
-    ignore_log?: boolean
+    ignoreLog?: boolean
 ) => Promise<StringObject>;
 
 export type QueryDocumentOptional = (
-    collection_path: string,
-    field_name: string,
+    collectionPath: string,
+    fieldName: string,
     operator: FirebaseFirestore.WhereFilterOp,
     value: any,
-    ignore_log?: boolean
+    ignoreLog?: boolean
 ) => Promise<StringObject | null>;
 
 export type OnSnapshotCallback = (documents: any[], config: OnSnapshotConfig) => void;
 
 export interface OnSnapshotParsers {
-    on_first_time?: OnSnapshotCallback;
-    on_add?: OnSnapshotCallback;
-    on_modify?: OnSnapshotCallback;
-    on_remove?: OnSnapshotCallback;
+    onFirstTime?: OnSnapshotCallback;
+    onAdd?: OnSnapshotCallback;
+    onModify?: OnSnapshotCallback;
+    onRemove?: OnSnapshotCallback;
 }
 
 export interface OnSnapshotConfig extends OnSnapshotParsers {
-    collection_name: string;
-    extra_parsers?: OnSnapshotParsers[];
-    parse_as?: "object" | "array";
-    subscribe_to?: "cache" | "db";
-    custom_name?: string;
+    collectionName: string;
+    extraParsers?: OnSnapshotParsers[];
+    parseAs?: "object" | "array";
+    subscribeTo?: "cache" | "db";
+    customName?: string;
 }
 
 export type Snapshot = (config: OnSnapshotConfig) => Promise<void>;

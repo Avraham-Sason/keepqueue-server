@@ -2,6 +2,7 @@ import { performance } from "perf_hooks";
 import firebase_admin from "firebase-admin";
 import {
     OnSnapshotConfig,
+    OnSnapshotParsers,
     QueryDocument,
     QueryDocumentByConditions,
     QueryDocumentOptional,
@@ -10,14 +11,14 @@ import {
     Snapshot,
     SnapshotBulk,
 } from "./types";
-import { cache_manager, logger } from "../managers";
+import { cacheManager, logger } from "../managers";
 import { DecodedIdToken } from "firebase-admin/auth";
+import { initEnvVariables } from "../helpers";
+import { StringObject } from "../types";
 import dotenv from "dotenv";
-
 dotenv.config();
-
 // initial firebase
-const required_env_vars = [
+const requiredEnvVars = [
     "type",
     "project_id",
     "private_key_id",
@@ -30,48 +31,46 @@ const required_env_vars = [
     "client_x509_cert_url",
     "universe_domain",
 ];
-const env_data = init_env_variables(required_env_vars);
-export const service_account_firebase = {
-    type: env_data.type,
-    project_id: env_data.project_id,
-    private_key_id: env_data.private_key_id,
-    private_key: env_data.private_key.replace(/\\n/g, "\n"),
-    client_email: env_data.client_email,
-    client_id: env_data.client_id,
-    auth_uri: env_data.auth_uri,
-    token_uri: env_data.token_uri,
-    auth_provider_x509_cert_url: env_data.auth_provider_x509_cert_url,
-    client_x509_cert_url: env_data.client_x509_cert_url,
-    universe_domain: env_data.universe_domain,
+const envData = initEnvVariables(requiredEnvVars);
+export const serviceAccountFirebase = {
+    type: envData.type,
+    project_id: envData.project_id,
+    private_key_id: envData.private_key_id,
+    private_key: envData.private_key.replace(/\\n/g, "\n"),
+    client_email: envData.client_email,
+    client_id: envData.client_id,
+    auth_uri: envData.auth_uri,
+    token_uri: envData.token_uri,
+    auth_provider_x509_cert_url: envData.auth_provider_x509_cert_url,
+    client_x509_cert_url: envData.client_x509_cert_url,
+    universe_domain: envData.universe_domain,
 };
 firebase_admin.initializeApp({
-    credential: firebase_admin.credential.cert(service_account_firebase as firebase_admin.ServiceAccount),
-    storageBucket: `${service_account_firebase.project_id}.appspot.com`,
+    credential: firebase_admin.credential.cert(serviceAccountFirebase as firebase_admin.ServiceAccount),
+    storageBucket: `${serviceAccountFirebase.project_id}.appspot.com`,
 });
 export const db = firebase_admin.firestore();
 export const messaging = firebase_admin.messaging();
 export const auth = firebase_admin.auth();
-import { init_env_variables } from "../helpers";
-import { StringObject } from "../types";
 
 /// extract
-export const simple_extract_data = (doc: FirebaseFirestore.DocumentSnapshot, include_id: boolean = true): StringObject => {
-    const doc_data = doc.data();
+export const simpleExtractData = (doc: FirebaseFirestore.DocumentSnapshot, includeId: boolean = true): StringObject => {
+    const docData = doc.data();
     const date = {
-        ...doc_data,
+        ...docData,
     };
-    if (include_id) {
+    if (includeId) {
         date.id = doc.id;
     }
     return date;
 };
 
 /// documents
-export const get_all_documents = async (collection_path: string, include_id: boolean = true) => {
+export const getAllDocuments = async (collectionPath: string, includeId: boolean = true) => {
     try {
-        const snapshot = await db.collection(collection_path).get();
+        const snapshot = await db.collection(collectionPath).get();
         const documents = snapshot.docs.flatMap((doc) => {
-            return simple_extract_data(doc, include_id);
+            return simpleExtractData(doc, includeId);
         });
         return documents;
     } catch (error) {
@@ -80,152 +79,154 @@ export const get_all_documents = async (collection_path: string, include_id: boo
     }
 };
 
-export const query_documents: QueryDocuments = async (collection_path, field_name, operator, value) => {
+export const queryDocuments: QueryDocuments = async (collectionPath, fieldName, operator, value) => {
     try {
-        const querySnapshot = await db.collection(collection_path).where(field_name, operator, value).get();
+        const querySnapshot = await db.collection(collectionPath).where(fieldName, operator, value).get();
         const documentsData = querySnapshot.docs;
-        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simple_extract_data(doc));
+        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simpleExtractData(doc));
         return documents;
     } catch (error) {
-        logger.error(`Error querying documents: ${collection_path} - ${field_name} - ${operator} - ${value} `, error);
+        logger.error(`Error querying documents: ${collectionPath} - ${fieldName} - ${operator} - ${value} `, error);
         throw error;
     }
 };
 
-export const query_documents_by_conditions: QueryDocumentsByConditions = async (collection_path, where_conditions) => {
+export const queryDocumentsByConditions: QueryDocumentsByConditions = async (collectionPath, whereConditions) => {
     try {
-        let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection(collection_path);
-        where_conditions.forEach((condition) => {
-            query = query.where(condition.field_name, condition.operator, condition.value);
+        let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection(collectionPath);
+        whereConditions.forEach((condition) => {
+            query = query.where(condition.fieldName, condition.operator, condition.value);
         });
         const querySnapshot = await query.get();
         const documentsData = querySnapshot.docs;
-        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simple_extract_data(doc));
+        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simpleExtractData(doc));
         return documents;
     } catch (error) {
-        logger.error(`Error querying documents: ${collection_path} - ${JSON.stringify(where_conditions)} `, error);
+        logger.error(`Error querying documents: ${collectionPath} - ${JSON.stringify(whereConditions)} `, error);
         throw error;
     }
 };
 
-export const query_document_by_conditions: QueryDocumentByConditions = async (collection_path, where_conditions, log = true) => {
+export const queryDocumentByConditions: QueryDocumentByConditions = async (collectionPath, whereConditions, log = true) => {
     try {
-        let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection(collection_path);
-        where_conditions.forEach((condition) => {
-            query = query.where(condition.field_name, condition.operator, condition.value);
+        let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection(collectionPath);
+        whereConditions.forEach((condition) => {
+            query = query.where(condition.fieldName, condition.operator, condition.value);
         });
         const querySnapshot = await query.get();
         const documentsData = querySnapshot.docs;
-        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simple_extract_data(doc));
+        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simpleExtractData(doc));
         if (!documents[0]) {
             throw "no data returned from DB";
         }
         return documents[0];
     } catch (error) {
         if (log) {
-            logger.error(`Error querying documents: ${collection_path} - ${JSON.stringify(where_conditions)} `, error);
+            logger.error(`Error querying documents: ${collectionPath} - ${JSON.stringify(whereConditions)} `, error);
         }
         throw error;
     }
 };
 
 /// document
-export const query_document: QueryDocument = async (collection_path, field_name, operator, value, ignore_log = false) => {
+export const queryDocument: QueryDocument = async (collectionPath, fieldName, operator, value, ignoreLog = false) => {
     try {
-        const querySnapshot = await db.collection(collection_path).where(field_name, operator, value).get();
+        const querySnapshot = await db.collection(collectionPath).where(fieldName, operator, value).get();
         const documentsData = querySnapshot.docs;
-        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simple_extract_data(doc));
+        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simpleExtractData(doc));
         if (documents.length < 1) {
-            throw `No data to return from: collection: ${collection_path}, field_name: ${field_name}, operator: ${operator}, value:${value}`;
+            throw `No data to return from: collection: ${collectionPath}, field_name: ${fieldName}, operator: ${operator}, value:${value}`;
         }
         return documents[0];
     } catch (error) {
-        if (!ignore_log) {
-            logger.error("Error querying document: " + JSON.stringify({ collection_path, field_name, operator, value }), error);
+        if (!ignoreLog) {
+            logger.error(
+                "Error querying document: " + JSON.stringify({ collection_path: collectionPath, field_name: fieldName, operator, value }),
+                error
+            );
         }
         throw error;
     }
 };
 
-export const query_document_optional: QueryDocumentOptional = async (collection_path, field_name, operator, value, ignore_log = true) => {
+export const queryDocumentOptional: QueryDocumentOptional = async (collectionPath, fieldName, operator, value, ignoreLog = true) => {
     try {
-        const querySnapshot = await db.collection(collection_path).where(field_name, operator, value).get();
+        const querySnapshot = await db.collection(collectionPath).where(fieldName, operator, value).get();
         const documentsData = querySnapshot.docs;
-        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simple_extract_data(doc));
+        const documents = documentsData.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simpleExtractData(doc));
         return documents[0] || null;
     } catch (error) {
-        if (!ignore_log) {
-            logger.error("Error querying optional document: " + JSON.stringify({ collection_path, field_name, operator, value }), error);
+        if (!ignoreLog) {
+            logger.error(
+                "Error querying optional document: " + JSON.stringify({ collection_path: collectionPath, field_name: fieldName, operator, value }),
+                error
+            );
         }
         return null;
     }
 };
 
-export const get_document_by_id = async (collection_path: string, doc_id: string, include_id: boolean = true): Promise<StringObject> => {
+export const getDocumentById = async (collectionPath: string, docId: string, includeId: boolean = true): Promise<StringObject> => {
     try {
-        const docRef = db.collection(collection_path).doc(doc_id);
+        const docRef = db.collection(collectionPath).doc(docId);
         const doc = await docRef.get();
         if (!doc.exists) {
-            throw "Document not found, document id: " + doc_id;
+            throw "Document not found, document id: " + docId;
         }
-        return simple_extract_data(doc, include_id);
+        return simpleExtractData(doc, includeId);
     } catch (error) {
-        logger.error("error from get_document_by_id", error);
+        logger.error("error from getDocumentById", error);
         throw error;
     }
 };
 
-export const get_document_by_id_optional = async (
-    collection_path: string,
-    doc_id: string,
-    include_id: boolean = true
-): Promise<StringObject | null> => {
+export const getDocumentByIdOptional = async (collectionPath: string, docId: string, includeId: boolean = true): Promise<StringObject | null> => {
     try {
-        const docRef = db.collection(collection_path).doc(doc_id);
+        const docRef = db.collection(collectionPath).doc(docId);
         const doc = await docRef.get();
         if (!doc.exists) {
-            throw "Document not found, document id: " + doc_id;
+            throw "Document not found, document id: " + docId;
         }
-        return simple_extract_data(doc, include_id);
+        return simpleExtractData(doc, includeId);
     } catch (error) {
-        logger.error("error from get_document_by_id_optional", error);
+        logger.error("error from getDocumentByIdOptional", error);
         return null;
     }
 };
 
-export const set_document = async (collection_path: string, doc_id: string, data: {}, merge: boolean = true): Promise<void> => {
+export const setDocument = async (collectionPath: string, docId: string, data: {}, merge: boolean = true): Promise<void> => {
     try {
         await db
-            .collection(collection_path)
-            .doc(doc_id)
+            .collection(collectionPath)
+            .doc(docId)
             .set({ ...data }, { merge });
     } catch (error) {
-        logger.error(`failed to create document by id: ${doc_id} in collection: ${collection_path}`, error);
-        throw `failed to create document by id ${doc_id} in collection ${collection_path}`;
+        logger.error(`failed to create document by id: ${docId} in collection: ${collectionPath}`, error);
+        throw `failed to create document by id ${docId} in collection ${collectionPath}`;
     }
 };
 
-export const add_document = async (collection_path: string, data: {}, include_id = false, custom_id?: string): Promise<void> => {
+export const addDocument = async (collectionPath: string, data: {}, includeId = false, customId?: string): Promise<void> => {
     try {
-        const new_document = custom_id ? db.collection(collection_path).doc(custom_id) : db.collection(collection_path).doc();
-        const update = include_id ? { ...data, id: new_document.id } : data;
-        await new_document.set(update);
+        const newDocument = customId ? db.collection(collectionPath).doc(customId) : db.collection(collectionPath).doc();
+        const update = includeId ? { ...data, id: newDocument.id } : data;
+        await newDocument.set(update);
     } catch (error) {
-        logger.error(`failed to create document in collection: ${collection_path}`, error);
-        throw `failed to create document in collection ${collection_path}`;
+        logger.error(`failed to create document in collection: ${collectionPath}`, error);
+        throw `failed to create document in collection ${collectionPath}`;
     }
 };
 
-export const delete_document = async (collection_path: string, doc_id: string): Promise<void> => {
+export const deleteDocument = async (collectionPath: string, docId: string): Promise<void> => {
     try {
-        await db.collection(collection_path).doc(doc_id).delete();
+        await db.collection(collectionPath).doc(docId).delete();
     } catch (error) {
-        throw `Failed to delete document with id ${doc_id} from collection ${collection_path}`;
+        throw `Failed to delete document with id ${docId} from collection ${collectionPath}`;
     }
 };
 
 /// token
-export const verify_token = async (authorization: string | undefined): Promise<DecodedIdToken> => {
+export const verifyToken = async (authorization: string | undefined): Promise<DecodedIdToken> => {
     try {
         if (!authorization) {
             throw "Authorization token is required";
@@ -244,92 +245,92 @@ export const verify_token = async (authorization: string | undefined): Promise<D
         }
         return res;
     } catch (error) {
-        logger.error("error from verify_token", error);
+        logger.error("error from verifyToken", error);
         throw error;
     }
 };
 
 /// parsers
 
-export const parse_add_update__as_object = (documents: any[], config: OnSnapshotConfig, doc_key_property: string): void => {
-    const data: StringObject = cache_manager.getObjectData(config.collection_name, {});
+export const parseAddUpdateAsObject = (documents: any[], config: OnSnapshotConfig, docKeyProperty: string): void => {
+    const data: StringObject = cacheManager.getObjectData(config.collectionName, {});
     documents.forEach((doc: StringObject) => {
-        data[doc[doc_key_property]] = doc;
+        data[doc[docKeyProperty]] = doc;
     });
-    cache_manager.setObjectData(doc_key_property, data);
+    cacheManager.setObjectData(docKeyProperty, data);
 };
 
-export const parse__delete__as_object = (documents: any[], config: OnSnapshotConfig, doc_key_property: string): void => {
-    const data: StringObject = cache_manager.getObjectData(config.collection_name, {});
+export const parseDeleteAsObject = (documents: any[], config: OnSnapshotConfig, docKeyProperty: string): void => {
+    const data: StringObject = cacheManager.getObjectData(config.collectionName, {});
     documents.forEach((doc: StringObject) => {
-        if (data[doc[doc_key_property]]) {
-            delete data[doc[doc_key_property]];
+        if (data[doc[docKeyProperty]]) {
+            delete data[doc[docKeyProperty]];
         }
     });
-    cache_manager.setObjectData(doc_key_property, data);
+    cacheManager.setObjectData(docKeyProperty, data);
 };
 
-export const parse__add_update__as_array = (documents: any[], config: OnSnapshotConfig): void => {
-    const { collection_name, custom_name = collection_name } = config;
-    config.on_remove?.(documents, config);
-    const existing_array: any[] = cache_manager.getArrayData(custom_name);
-    const updated_array = [...existing_array, ...documents];
-    cache_manager.setArrayData(custom_name, updated_array);
+export const parseAddUpdateAsArray = (documents: any[], config: OnSnapshotConfig): void => {
+    const { collectionName, customName = collectionName } = config;
+    config.onRemove?.(documents, config);
+    const existingArray: any[] = cacheManager.getArrayData(customName);
+    const updatedArray = [...existingArray, ...documents];
+    cacheManager.setArrayData(customName, updatedArray);
 };
 
-export const parse__delete__as_array = (documents: any[], config: OnSnapshotConfig): void => {
-    const { collection_name, custom_name = collection_name } = config;
-    const existing_array: any[] = cache_manager.getArrayData(custom_name);
-    const keys_to_delete = documents.map((doc) => doc.id);
-    const updated_array = existing_array.filter((doc) => !keys_to_delete.includes(doc.id));
-    cache_manager.setArrayData(custom_name, updated_array);
+export const parseDeleteAsArray = (documents: any[], config: OnSnapshotConfig): void => {
+    const { collectionName, customName = collectionName } = config;
+    const existingArray: any[] = cacheManager.getArrayData(customName);
+    const keysToDelete = documents.map((doc) => doc.id);
+    const updatedArray = existingArray.filter((doc) => !keysToDelete.includes(doc.id));
+    cacheManager.setArrayData(customName, updatedArray);
 };
 
 /// snapshots
-const snapshots_first_time: string[] = [];
+const snapshotsFirstTime: string[] = [];
 
 export const snapshot: Snapshot = (config) => {
     return new Promise<void>(async (resolve) => {
-        const { collection_name, custom_name = collection_name } = config;
+        const { collectionName, customName = collectionName } = config;
 
-        db.collection(config.collection_name).onSnapshot(
+        db.collection(config.collectionName).onSnapshot(
             (snapshot) => {
-                if (!snapshots_first_time.includes(custom_name)) {
-                    snapshots_first_time.push(custom_name);
-                    const documents = snapshot.docs.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simple_extract_data(doc));
+                if (!snapshotsFirstTime.includes(customName)) {
+                    snapshotsFirstTime.push(customName);
+                    const documents = snapshot.docs.flatMap((doc: FirebaseFirestore.DocumentSnapshot) => simpleExtractData(doc));
 
-                    config.on_first_time?.(documents, config);
-                    config.extra_parsers?.forEach((extra_parser) => {
-                        extra_parser.on_first_time?.(documents, config);
+                    config.onFirstTime?.(documents, config);
+                    config.extraParsers?.forEach((extraParser: OnSnapshotParsers) => {
+                        extraParser.onFirstTime?.(documents, config);
                     });
                     resolve();
                 } else {
-                    const get_docs_from_snapshot = (action: string): StringObject[] => {
+                    const getDocsFromSnapshot = (action: string): StringObject[] => {
                         return snapshot
                             .docChanges()
                             .filter((change) => change.type === action)
-                            .map((change) => simple_extract_data(change.doc));
+                            .map((change) => simpleExtractData(change.doc));
                     };
 
-                    config.on_add?.(get_docs_from_snapshot("added"), config);
-                    config.on_modify?.(get_docs_from_snapshot("modified"), config);
-                    config.on_remove?.(get_docs_from_snapshot("removed"), config);
+                    config.onAdd?.(getDocsFromSnapshot("added"), config);
+                    config.onModify?.(getDocsFromSnapshot("modified"), config);
+                    config.onRemove?.(getDocsFromSnapshot("removed"), config);
 
-                    config.extra_parsers?.forEach((extra_parser) => {
-                        extra_parser.on_add?.(get_docs_from_snapshot("added"), config);
-                        extra_parser.on_modify?.(get_docs_from_snapshot("modified"), config);
-                        extra_parser.on_remove?.(get_docs_from_snapshot("removed"), config);
+                    config.extraParsers?.forEach((extraParser: OnSnapshotParsers) => {
+                        extraParser.onAdd?.(getDocsFromSnapshot("added"), config);
+                        extraParser.onModify?.(getDocsFromSnapshot("modified"), config);
+                        extraParser.onRemove?.(getDocsFromSnapshot("removed"), config);
                     });
                 }
             },
             (error) => {
-                logger.error(`Error listening to collection: ${config.collection_name}`, error);
+                logger.error(`Error listening to collection: ${config.collectionName}`, error);
             }
         );
     });
 };
 
-export const snapshot_bulk: SnapshotBulk = async (snapshotsConfig, label = "custom snapshots") => {
+export const snapshotBulk: SnapshotBulk = async (snapshotsConfig, label = "custom snapshots") => {
     const start = performance.now();
     logger.log(`==> ${label} started... `);
     await Promise.all(snapshotsConfig.map(async (snapshotConfig) => await snapshot(snapshotConfig)));

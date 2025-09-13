@@ -1,7 +1,7 @@
 import moment_timezone from "moment-timezone";
 import axios from "axios";
 import { isObject } from "lodash";
-import { parse_error } from "../helpers";
+import { parseError } from "../helpers";
 import { StringObject } from "../types";
 
 class LoggerManager {
@@ -13,7 +13,7 @@ class LoggerManager {
         }
         return LoggerManager.instance;
     }
-    private get_date(): string {
+    private getDate(): string {
         return moment_timezone().tz("Asia/Jerusalem").format("DD/MM/YYYY HH:mm:ss.SS");
     }
     public log(msg: string, data?: StringObject | any[]): void {
@@ -29,28 +29,28 @@ class LoggerManager {
             }) &&
             data.some((val) => Object.values(val).length > 1);
         if (is_table) {
-            console.log(`${this.get_date()} - `, msg, ": ");
+            console.log(`${this.getDate()} - `, msg, ": ");
             console.table(data);
             return;
         }
         console.log(
-            `${this.get_date()} - ${msg}`,
+            `${this.getDate()} - ${msg}`,
             data === undefined ? "" : `: ${isObject(data) || Array.isArray(data) ? JSON.stringify(data) : data}`
         );
     }
     public error(msg: string, data?: any) {
         if (axios.isAxiosError(data)) {
             if (!!data.response?.data) {
-                console.error(`${this.get_date()} - ${msg}, axios error: ${data.message}, data: ${JSON.stringify(data)}`);
+                console.error(`${this.getDate()} - ${msg}, axios error: ${data.message}, data: ${JSON.stringify(data)}`);
             } else {
-                console.error(`${this.get_date()} - ${msg}, axios error: ${data.message}`);
+                console.error(`${this.getDate()} - ${msg}, axios error: ${data.message}`);
             }
         } else {
-            console.error(`${this.get_date()} - ${msg}`, data === undefined ? "" : `: ${JSON.stringify(parse_error(data))}`);
+            console.error(`${this.getDate()} - ${msg}`, data === undefined ? "" : `: ${JSON.stringify(parseError(data))}`);
         }
     }
     public warn(msg: string, data?: any) {
-        console.warn(`${this.get_date()} - ${msg}`, data === undefined ? "" : `: ${JSON.stringify(data)}`);
+        console.warn(`${this.getDate()} - ${msg}`, data === undefined ? "" : `: ${JSON.stringify(data)}`);
     }
 }
 

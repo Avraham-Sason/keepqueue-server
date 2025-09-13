@@ -1,10 +1,12 @@
-import main_router from "./main_router";
-import package_json from "../package.json";
-import { start_server } from "./helpers";
-
+import mainRouter from "./main_router";
+import { startServer } from "./helpers";
+import { getAllDocuments } from "./firebase/helpers";
+import dotenv from "dotenv";
+dotenv.config();
 const init = async () => {
-    const version = package_json.version;
-    await start_server(main_router, "nx-cloudwise", version);
+    await startServer(mainRouter);
+    const users = await getAllDocuments("users");
+    console.log("users", users);
 };
 
 init().catch((e) => {

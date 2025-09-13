@@ -29,9 +29,9 @@ export class CacheManager {
         this.data[key] = data;
     }
 
-    public getObjectData(key: string, default_value: any = null): any {
-        return this.data[key] || default_value;
+    public getObjectData(key: string, defaultValue: any = null): any {
+        return this.data[key] || defaultValue;
     }
 }
 
-export const cache_manager: CacheManager = CacheManager.getInstance();
+export const cacheManager: CacheManager = CacheManager.getInstance();

@@ -1,11 +1,11 @@
-import { trim_strings } from "../helpers";
+import { trimStrings } from "../helpers";
 import { MW } from "../types";
 
 export * from "./error_handling";
 
-export const trim_body_middleware = (): MW => (req, res, next) => {
+export const trimBodyMiddleware = (): MW => (req, res, next) => {
     if (req.body && typeof req.body === "object") {
-        req.body = trim_strings(req.body);
+        req.body = trimStrings(req.body);
     }
     return next();
 };

@@ -4,7 +4,7 @@ import { Service } from "../types";
 /**
  * Utility to handle async errors
  */
-const async_error_handler = (service: Service) => {
+const asyncErrorHandler = (service: Service) => {
     return (req: Request, res: Response, next: NextFunction) => {
         Promise.resolve(service(req, res)).catch(next);
     };
@@ -13,7 +13,7 @@ const async_error_handler = (service: Service) => {
 /**
  * Global error-handling middleware.
  */
-const error_handler = (err: Error, req: Request, res: Response) => {
+const errorHandler = (err: Error, req: Request, res: Response) => {
     console.error("Global Error Handler:", err.stack);
 
     res.status(500).json({
@@ -22,4 +22,4 @@ const error_handler = (err: Error, req: Request, res: Response) => {
     });
 };
 
-export { error_handler, async_error_handler };
+export { errorHandler, asyncErrorHandler };
