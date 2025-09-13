@@ -1,7 +1,7 @@
 {
     "name": "keepqueue-server",
     "version": "1.0.0",
-    "description": "responsible for all akeyless cache-server",
+    "description": "server for keepqueue",
     "main": "index.js",
     "scripts": {
         "build": "tsc",
