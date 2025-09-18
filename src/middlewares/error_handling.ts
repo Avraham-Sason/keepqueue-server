@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { Service } from "../types";
+import { RouterService } from "../types";
 
 /**
  * Utility to handle async errors
  */
-const asyncErrorHandler = (service: Service) => {
+const asyncErrorHandler = (service: RouterService) => {
     return (req: Request, res: Response, next: NextFunction) => {
         Promise.resolve(service(req, res)).catch(next);
     };
@@ -13,8 +13,8 @@ const asyncErrorHandler = (service: Service) => {
 /**
  * Global error-handling middleware.
  */
-const errorHandler = (err: Error, req: Request, res: Response) => {
-    console.error("Global Error Handler:", err.stack);
+const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+    console.error("Global Error Handler:", (err as any)?.stack || err);
 
     res.status(500).json({
         status: "error",

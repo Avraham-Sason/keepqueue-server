@@ -1,33 +1,21 @@
-FROM node:18-alpine
+FROM node:22-alpine
 # install curl
 RUN apk add --no-cache curl
 # Create and set the app directory
 WORKDIR /usr/src/app
 
-# Install app dependencies
-COPY package*.json ./
-RUN npm install
+# Install app dependencies with pnpm (via corepack)
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && corepack prepare pnpm@latest --activate && pnpm install --frozen-lockfile
 
-# Argument for environment
-ARG ENV
-
-# Fail the build if ENV is not provided
-RUN if [ -z "$ENV" ]; then echo "ENV build argument is required" && exit 1; fi
-
-# Copy environment-specific env file
-COPY env/${ENV}/.env .env
-
-# Copy the rest of the application
+# Copy the rest of the application (including root .env)
 COPY . .
 
 # Build the TypeScript code
-RUN npm run build
-
-# Remove environment files after build
-RUN rm -rf env
+RUN pnpm run build
 
 # Expose the port the app runs on
-EXPOSE 9012
+EXPOSE 9000
 
 # Command to run the app
 CMD [ "node", "dist/app.js" ]

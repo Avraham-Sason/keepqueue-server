@@ -12,6 +12,8 @@ export type MainRouter = (app: Express) => void;
 
 export type MW = (req: Request, res: Response, next: NextFunction) => void;
 
-export type Service = (req: Request, res: Response) => void;
+export type RouterService = (req: Request, res: Response) => void;
 
 export type Route = (req: Request, res: Response, next?: NextFunction) => Response;
+
+export * from "./global";

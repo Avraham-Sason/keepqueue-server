@@ -1,7 +1,6 @@
 import { performance } from "perf_hooks";
 import firebase_admin from "firebase-admin";
 import {
-    OnSnapshotConfig,
     OnSnapshotParsers,
     QueryDocument,
     QueryDocumentByConditions,
@@ -11,7 +10,7 @@ import {
     Snapshot,
     SnapshotBulk,
 } from "./types";
-import { cacheManager, logger } from "../managers";
+import { logger } from "../managers";
 import { DecodedIdToken } from "firebase-admin/auth";
 import { initEnvVariables } from "../helpers";
 import { StringObject } from "../types";
@@ -250,42 +249,6 @@ export const verifyToken = async (authorization: string | undefined): Promise<De
     }
 };
 
-/// parsers
-
-export const parseAddUpdateAsObject = (documents: any[], config: OnSnapshotConfig, docKeyProperty: string): void => {
-    const data: StringObject = cacheManager.getObjectData(config.collectionName, {});
-    documents.forEach((doc: StringObject) => {
-        data[doc[docKeyProperty]] = doc;
-    });
-    cacheManager.setObjectData(docKeyProperty, data);
-};
-
-export const parseDeleteAsObject = (documents: any[], config: OnSnapshotConfig, docKeyProperty: string): void => {
-    const data: StringObject = cacheManager.getObjectData(config.collectionName, {});
-    documents.forEach((doc: StringObject) => {
-        if (data[doc[docKeyProperty]]) {
-            delete data[doc[docKeyProperty]];
-        }
-    });
-    cacheManager.setObjectData(docKeyProperty, data);
-};
-
-export const parseAddUpdateAsArray = (documents: any[], config: OnSnapshotConfig): void => {
-    const { collectionName, customName = collectionName } = config;
-    config.onRemove?.(documents, config);
-    const existingArray: any[] = cacheManager.getArrayData(customName);
-    const updatedArray = [...existingArray, ...documents];
-    cacheManager.setArrayData(customName, updatedArray);
-};
-
-export const parseDeleteAsArray = (documents: any[], config: OnSnapshotConfig): void => {
-    const { collectionName, customName = collectionName } = config;
-    const existingArray: any[] = cacheManager.getArrayData(customName);
-    const keysToDelete = documents.map((doc) => doc.id);
-    const updatedArray = existingArray.filter((doc) => !keysToDelete.includes(doc.id));
-    cacheManager.setArrayData(customName, updatedArray);
-};
-
 /// snapshots
 const snapshotsFirstTime: string[] = [];
 
@@ -311,15 +274,31 @@ export const snapshot: Snapshot = (config) => {
                             .filter((change) => change.type === action)
                             .map((change) => simpleExtractData(change.doc));
                     };
+                    const [added, modified, removed] = [
+                        getDocsFromSnapshot("added"),
+                        getDocsFromSnapshot("modified"),
+                        getDocsFromSnapshot("removed"),
+                    ];
 
-                    config.onAdd?.(getDocsFromSnapshot("added"), config);
-                    config.onModify?.(getDocsFromSnapshot("modified"), config);
-                    config.onRemove?.(getDocsFromSnapshot("removed"), config);
-
+                    if (added.length) {
+                        config.onAdd?.(added, config);
+                    }
+                    if (modified.length) {
+                        config.onModify?.(modified, config);
+                    }
+                    if (removed.length) {
+                        config.onRemove?.(removed, config);
+                    }
                     config.extraParsers?.forEach((extraParser: OnSnapshotParsers) => {
-                        extraParser.onAdd?.(getDocsFromSnapshot("added"), config);
-                        extraParser.onModify?.(getDocsFromSnapshot("modified"), config);
-                        extraParser.onRemove?.(getDocsFromSnapshot("removed"), config);
+                        if (added.length) {
+                            extraParser.onAdd?.(added, config);
+                        }
+                        if (modified.length) {
+                            extraParser.onModify?.(modified, config);
+                        }
+                        if (removed.length) {
+                            extraParser.onRemove?.(removed, config);
+                        }
                     });
                 }
             },

@@ -1,11 +1,10 @@
 import mainRouter from "./main_router";
 import { startServer } from "./helpers";
-import { getAllDocuments } from "./firebase/helpers";
+import { initSnapshot } from "./firebase";
 
 const init = async () => {
+    await initSnapshot();
     await startServer(mainRouter);
-    const users = await getAllDocuments("users");
-    console.log("users", users);
 };
 
 init().catch((e) => {

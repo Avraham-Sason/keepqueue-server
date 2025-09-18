@@ -27,7 +27,8 @@ export const startServer = async (mainRouter: MainRouter, port?: number): Promis
     const app: Express = express();
     const { version, name } = packageJson;
     let envData = initEnvVariables(["port"]);
-    port = port || Number(envData.port);
+    const resolvedPort = Number(port || process.env.PORT || envData.port);
+    port = Number.isFinite(resolvedPort) && resolvedPort > 0 ? resolvedPort : 9000;
     app.use(cors());
     app.use(express.json());
     app.use(trimBodyMiddleware());

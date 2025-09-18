@@ -45,8 +45,6 @@ export interface OnSnapshotParsers {
 export interface OnSnapshotConfig extends OnSnapshotParsers {
     collectionName: string;
     extraParsers?: OnSnapshotParsers[];
-    parseAs?: "object" | "array";
-    subscribeTo?: "cache" | "db";
     customName?: string;
 }
 
