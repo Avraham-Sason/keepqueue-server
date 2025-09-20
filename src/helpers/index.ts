@@ -1,12 +1,16 @@
 import express, { Express } from "express";
 import cors from "cors";
 import { logger } from "../managers";
-import { errorHandler } from "../middlewares/error_handling";
+import { errorHandler } from "../middlewares";
 import { trimBodyMiddleware } from "../middlewares";
 import { MainRouter, StringObject } from "../types";
 import { readFileSync } from "fs";
 import packageJson from "../../package.json";
 
+export const jsonOK = <T = any>(data?: T) => {
+    return { success: true, data };
+};
+jsonOK();
 export const initEnvVariables = (requiredVars: string[] = []) => {
     requiredVars.forEach((varName) => {
         const envVal = process.env[varName];
