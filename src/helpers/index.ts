@@ -10,7 +10,10 @@ import packageJson from "../../package.json";
 export const jsonOK = <T = any>(data?: T) => {
     return { success: true, data };
 };
-jsonOK();
+export const jsonFailed = <T = any>(error?: T) => {
+    return { success: false, error };
+};
+
 export const initEnvVariables = (requiredVars: string[] = []) => {
     requiredVars.forEach((varName) => {
         const envVal = process.env[varName];

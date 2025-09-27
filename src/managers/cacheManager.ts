@@ -1,26 +1,5 @@
 import { Audit, Business, CalendarEvent, MessageTemplate, NotificationLog, Review, Service, StringObject, User, WaitItem } from "../types";
 
-export interface CacheStore {
-    calendar: CalendarEvent[];
-    calendarMap: Map<string, CalendarEvent>;
-    businesses: Business[];
-    businessesMap: Map<string, Business>;
-    services: Service[];
-    servicesMap: Map<string, Service>;
-    users: User[];
-    usersMap: Map<string, User>;
-    waitlist: WaitItem[];
-    waitlistMap: Map<string, WaitItem>;
-    reviews: Review[];
-    reviewsMap: Map<string, Review>;
-    notification_logs: NotificationLog[];
-    notification_logsMap: Map<string, NotificationLog>;
-    message_templates: MessageTemplate[];
-    message_templatesMap: Map<string, MessageTemplate>;
-    audits: Audit[];
-    auditsMap: Map<string, Audit>;
-}
-
 interface SetOptions {
     merge?: boolean;
     replacePrevValues?: boolean;
@@ -126,3 +105,24 @@ export class CacheManager {
 }
 
 export const cacheManager = CacheManager.getInstance();
+
+export interface CacheStore {
+    calendar: CalendarEvent[];
+    calendarMap: Map<string, CalendarEvent>;
+    businesses: Business[];
+    businessesMap: Map<string, Business>;
+    services: Service[];
+    servicesMap: Map<string, Service>;
+    users: User[];
+    usersMap: Map<string, User>;
+    waitlist: WaitItem[];
+    waitlistMap: Map<string, WaitItem>;
+    reviews: Review[];
+    reviewsMap: Map<string, Review>;
+    messageTemplates: MessageTemplate[];
+    messageTemplatesMap: Map<string, MessageTemplate>;
+    notificationLogs: NotificationLog[];
+    notificationLogsMap: Map<string, NotificationLog>;
+    audits: Audit[];
+    auditsMap: Map<string, Audit>;
+}

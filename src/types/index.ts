@@ -11,3 +11,4 @@ export type MW = (req: Request, res: Response, next: NextFunction) => void;
 export type RouterService = (req: Request, res: Response, next: NextFunction) => void;
 
 export * from "./global";
+export * from "./business";

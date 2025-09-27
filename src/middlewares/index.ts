@@ -1,5 +1,5 @@
 import { type Request, type Response } from "express";
-import { trimStrings } from "../helpers";
+import { jsonFailed, trimStrings } from "../helpers";
 import { MW } from "../types";
 import { logger } from "../managers";
 import { type ZodSchema } from "zod";
@@ -19,19 +19,23 @@ export const errorHandler = (err: Error, req: Request, res: Response) => {
     });
 };
 
-export const validateBody = <T>(schema: ZodSchema<T>): MW => (req, res, next) => {
-    const parseResult = schema.safeParse(req.body);
-    if (!parseResult.success) {
-        const issues = parseResult.error.issues.map((i) => ({
-            path: i.path.join("."),
-            message: i.message,
-            code: i.code,
-        }));
-        return res.status(400).json({
-            message: "Validation Error",
-            errors: issues,
-        });
-    }
-    req.body = parseResult.data as T;
-    return next();
-};
+export const validateBody =
+    <T>(schema: ZodSchema<T>): MW =>
+    (req, res, next) => {
+        const parseResult = schema.safeParse(req.body);
+        if (!parseResult.success) {
+            const issues = parseResult.error.issues.map((i) => ({
+                path: i.path.join("."),
+                message: i.message,
+                code: i.code,
+            }));
+            return res.status(400).send(
+                jsonFailed({
+                    message: "Validation Error",
+                    errors: issues,
+                })
+            );
+        }
+        req.body = parseResult.data as T;
+        return next();
+    };
