@@ -1,4 +1,4 @@
-import { type Request, type Response } from "express";
+import { type Request, type Response, type NextFunction } from "express";
 import { jsonFailed, trimStrings } from "../helpers";
 import { MW } from "../types";
 import { logger } from "../managers";
@@ -11,11 +11,11 @@ export const trimBodyMiddleware = (): MW => (req, res, next) => {
     return next();
 };
 
-export const errorHandler = (err: Error, req: Request, res: Response) => {
-    logger.error("Global Error Handler:", err?.message || err);
+export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+    logger.error("Global Error Handler:", err || "Unknown error");
 
     res.status(500).json({
-        message: err.message || "Internal Server Error",
+        message: err?.message || "Internal Server Error",
     });
 };
 

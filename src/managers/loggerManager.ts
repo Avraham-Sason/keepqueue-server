@@ -1,7 +1,7 @@
 import moment_timezone from "moment-timezone";
 import axios from "axios";
 import { isObject } from "lodash";
-import { parseError } from "../helpers";
+import { parseError, safeStringify } from "../helpers";
 import { StringObject } from "../types";
 
 class LoggerManager {
@@ -33,24 +33,26 @@ class LoggerManager {
             console.table(data);
             return;
         }
-        console.log(
-            `${this.getDate()} - ${msg}`,
-            data === undefined ? "" : `: ${isObject(data) || Array.isArray(data) ? JSON.stringify(data) : data}`
-        );
+        console.log(`${this.getDate()} - ${msg}`, data === undefined ? "" : `: ${isObject(data) || Array.isArray(data) ? safeStringify(data) : data}`);
     }
     public error(msg: string, data?: any) {
         if (axios.isAxiosError(data)) {
-            if (!!data.response?.data) {
-                console.error(`${this.getDate()} - ${msg}, axios error: ${data.message}, data: ${JSON.stringify(data)}`);
-            } else {
-                console.error(`${this.getDate()} - ${msg}, axios error: ${data.message}`);
-            }
-        } else {
-            console.error(`${this.getDate()} - ${msg}`, data === undefined ? "" : `: ${JSON.stringify(parseError(data))}`);
+            const summary = {
+                message: data.message,
+                code: (data as any).code,
+                status: data.response?.status,
+                method: data.config?.method,
+                url: data.config?.url,
+                response_data: data.response?.data,
+            };
+            console.error(`${this.getDate()} - ${msg}, axios error: ${safeStringify(summary)}`);
+            return;
         }
+        const parsed = parseError(data);
+        console.error(`${this.getDate()} - ${msg}`, data === undefined ? "" : `: ${safeStringify(parsed)}`);
     }
     public warn(msg: string, data?: any) {
-        console.warn(`${this.getDate()} - ${msg}`, data === undefined ? "" : `: ${JSON.stringify(data)}`);
+        console.warn(`${this.getDate()} - ${msg}`, data === undefined ? "" : `: ${safeStringify(data)}`);
     }
 }
 
