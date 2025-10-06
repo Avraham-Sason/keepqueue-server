@@ -16,9 +16,9 @@ export const getCollectionSchema = object({
 
 export type GetCollectionModel = z.infer<typeof getCollectionSchema>;
 
-
 export const getBusinessSchema = object({
-    businessId: string(),
+    businessId: string().optional(),
+    ownerId: string().optional(),
 });
 
 export type GetBusinessModel = z.infer<typeof getBusinessSchema>;

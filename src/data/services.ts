@@ -24,7 +24,11 @@ export const S_getCollection: RouterService = async (req, res, next) => {
 };
 
 export const S_getBusiness: RouterService = async (req, res, next) => {
-    const { businessId } = req.body as GetBusinessModel;
+    const { businessId, ownerId } = req.body as GetBusinessModel;
+    if (!businessId && !ownerId) {
+        res.json(jsonFailed("Business ID or owner ID is required"));
+        return;
+    }
 
     const [users, usersMap, businesses, businessesMap, services, servicesMap, calendar, waitlist, messageTemplates, reviews] = [
         cacheManager.get("users", []),
@@ -43,7 +47,12 @@ export const S_getBusiness: RouterService = async (req, res, next) => {
     const getServiceById = (id: string) => servicesMap.get(id) || services.find((s) => s.id === id)!;
 
     try {
-        const business = businessesMap.get(businessId) || businesses.find((b) => b.id === businessId);
+        let business = null;
+        if (businessId) {
+            business = businessesMap.get(businessId) || businesses.find((b) => b.id === businessId);
+        } else {
+            business = businesses.find((b) => b.ownerId === ownerId);
+        }
         if (!business) {
             res.json(jsonFailed("Business not found"));
             return;
