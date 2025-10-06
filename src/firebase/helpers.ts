@@ -15,6 +15,7 @@ import { DecodedIdToken } from "firebase-admin/auth";
 import { initEnvVariables } from "../helpers";
 import { StringObject } from "../types";
 import dotenv from "dotenv";
+import { Timestamp } from "firebase-admin/firestore";
 dotenv.config();
 // initial firebase
 const requiredEnvVars = [
@@ -44,6 +45,7 @@ export const serviceAccountFirebase = {
     client_x509_cert_url: envData.client_x509_cert_url,
     universe_domain: envData.universe_domain,
 };
+export const firebaseTimestamp = () => Timestamp.now();
 firebase_admin.initializeApp({
     credential: firebase_admin.credential.cert(serviceAccountFirebase as firebase_admin.ServiceAccount),
     storageBucket: `${serviceAccountFirebase.project_id}.appspot.com`,

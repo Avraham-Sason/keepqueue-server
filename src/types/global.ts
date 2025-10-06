@@ -102,7 +102,7 @@ export interface Pricing {
 export interface CalendarEvent extends DocBase {
     businessId: ID;
     userId: ID;
-    serviceId: ID;
+    serviceId?: ID;
     type: CalendarEventType;
     status: CalendarEventStatus;
     title: string;
