@@ -1,10 +1,11 @@
 import { jsonFailed, jsonOK } from "../helpers";
 import { cacheManager } from "../managers";
-import { RouterService, BusinessWithRelations } from "../types";
+import { RouterService, BusinessWithRelations, StringObject, CalendarEventWithRelations } from "../types";
 import { checkCondition } from "./helpers";
 import { GetBusinessModel, GetCollectionModel } from "./schemes";
+import { computeBusinessAvailability } from "../actions/businesses/appointments/helpers";
 
-export const S_getCollection: RouterService = async (req, res, next) => {
+export const SGetCollection: RouterService = async (req, res, next) => {
     try {
         const { collectionName, conditions, conditionsType = "and" } = req.body as GetCollectionModel;
         let data = cacheManager.get(collectionName, []) as any[];
@@ -23,7 +24,7 @@ export const S_getCollection: RouterService = async (req, res, next) => {
     }
 };
 
-export const S_getBusiness: RouterService = async (req, res, next) => {
+export const SGetBusiness: RouterService = async (req, res, next) => {
     const { businessId, ownerId } = req.body as GetBusinessModel;
     if (!businessId && !ownerId) {
         res.json(jsonFailed("Business ID or owner ID is required"));
@@ -63,11 +64,16 @@ export const S_getBusiness: RouterService = async (req, res, next) => {
 
         const businessCalendar = calendar
             .filter((e) => e.businessId === businessId)
-            .map((e) => ({
-                ...e,
-                user: getUserById(e.userId),
-                service: getServiceById(e.serviceId),
-            }));
+            .map((e) => {
+                const data: CalendarEventWithRelations = {
+                    ...e,
+                    user: getUserById(e.userId),
+                };
+                if (e.serviceId) {
+                    data.service = getServiceById(e.serviceId);
+                }
+                return data;
+            });
 
         const businessWaitlist = waitlist
             .filter((w) => w.businessId === businessId)
@@ -91,6 +97,7 @@ export const S_getBusiness: RouterService = async (req, res, next) => {
             waitlist: businessWaitlist,
             messageTemplates: businessMessageTemplates,
             reviews: businessReviews,
+            availability: computeBusinessAvailability(business, business.operationSchedule),
         };
 
         res.json(jsonOK(result));

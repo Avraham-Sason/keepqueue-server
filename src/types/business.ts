@@ -1,12 +1,12 @@
-import { Business, CalendarEvent, MessageTemplate, Review, Service, User, WaitItem } from "./global";
+import { Business, CalendarEvent, MessageTemplate, Review, Service, TS, User, WaitItem } from "./global";
 
 interface ReviewWithUser extends Review {
     user: User;
 }
 
-interface CalendarEventWithRelations extends CalendarEvent {
+export interface CalendarEventWithRelations extends CalendarEvent {
     user: User;
-    service: Service;
+    service?: Service;
 }
 
 interface WaitItemWithRelations extends WaitItem {
@@ -20,4 +20,10 @@ export interface BusinessWithRelations extends Business {
     waitlist: WaitItemWithRelations[];
     messageTemplates: MessageTemplate[];
     reviews: ReviewWithUser[];
+    availability: AvailabilitySlot[];
+}
+
+export interface AvailabilitySlot {
+    start: TS;
+    end: TS;
 }

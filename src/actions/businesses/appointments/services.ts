@@ -5,7 +5,7 @@ import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { getServiceById, hasCalendarOverlapInCache, parseTs } from "./helpers";
 import { CreateAppointmentModel } from "./schemes";
 
-export const S_createAppointment: RouterService = async (req, res, next) => {
+export const SCreateAppointment: RouterService = async (req, res, next) => {
     try {
         const { businessId, userId, serviceId, start, end, source, notes, type } = req.body as CreateAppointmentModel;
 
@@ -52,7 +52,7 @@ export const S_createAppointment: RouterService = async (req, res, next) => {
     }
 };
 
-export const S_confirmAppointment: RouterService = async (req, res, next) => {
+export const SConfirmAppointment: RouterService = async (req, res, next) => {
     try {
         const { calendarEventId } = req.body as any;
         const calendarRef = db.collection("calendar").doc(calendarEventId);
@@ -69,7 +69,7 @@ export const S_confirmAppointment: RouterService = async (req, res, next) => {
     }
 };
 
-export const S_cancelAppointment: RouterService = async (req, res, next) => {
+export const SCancelAppointment: RouterService = async (req, res, next) => {
     try {
         const { calendarEventId, reason } = req.body as any;
         const calendarRef = db.collection("calendar").doc(calendarEventId);
