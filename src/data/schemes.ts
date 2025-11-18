@@ -22,3 +22,21 @@ export const getBusinessSchema = object({
 });
 
 export type GetBusinessModel = z.infer<typeof getBusinessSchema>;
+
+export const getAvailabilityByServiceIdSchema = object({
+    serviceId: string().min(5),
+});
+
+export type GetAvailabilityByServiceIdModel = z.infer<typeof getAvailabilityByServiceIdSchema>;
+
+export const getBusinessCustomersSchema = object({
+    businessId: string().min(5),
+});
+
+export type GetBusinessCustomersModel = z.infer<typeof getBusinessCustomersSchema>;
+
+export const getUserByIdSchema = object({
+    userId: string().min(5),
+});
+
+export type GetUserByIdModel = z.infer<typeof getUserByIdSchema>;

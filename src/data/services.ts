@@ -1,11 +1,11 @@
 import { jsonFailed, jsonOK } from "../helpers";
-import { cacheManager } from "../managers";
-import { RouterService, BusinessWithRelations, StringObject, CalendarEventWithRelations } from "../types";
+import { cacheManager, logger } from "../managers";
+import { RouterService, BusinessWithRelations, StringObject, CalendarEventWithRelations, Customer } from "../types";
 import { checkCondition } from "./helpers";
-import { GetBusinessModel, GetCollectionModel } from "./schemes";
+import { GetAvailabilityByServiceIdModel, GetBusinessCustomersModel, GetBusinessModel, GetCollectionModel, GetUserByIdModel } from "./schemes";
 import { computeBusinessAvailability } from "../actions/businesses/appointments/helpers";
 
-export const SGetCollection: RouterService = async (req, res, next) => {
+export const S_getCollection: RouterService = async (req, res, next) => {
     try {
         const { collectionName, conditions, conditionsType = "and" } = req.body as GetCollectionModel;
         let data = cacheManager.get(collectionName, []) as any[];
@@ -24,7 +24,7 @@ export const SGetCollection: RouterService = async (req, res, next) => {
     }
 };
 
-export const SGetBusiness: RouterService = async (req, res, next) => {
+export const S_getBusiness: RouterService = async (req, res, next) => {
     const { businessId, ownerId } = req.body as GetBusinessModel;
     if (!businessId && !ownerId) {
         res.json(jsonFailed("Business ID or owner ID is required"));
@@ -59,11 +59,12 @@ export const SGetBusiness: RouterService = async (req, res, next) => {
             return;
         }
 
-        const businessServices = services.filter((s) => s.businessId === businessId);
-        const businessMessageTemplates = messageTemplates.filter((m) => m.businessId === businessId);
+        const businessServices = services.filter((s) => s.businessId === business.id);
+
+        const businessMessageTemplates = messageTemplates.filter((m) => m.businessId === business.id);
 
         const businessCalendar = calendar
-            .filter((e) => e.businessId === businessId)
+            .filter((e) => e.businessId === business.id)
             .map((e) => {
                 const data: CalendarEventWithRelations = {
                     ...e,
@@ -76,7 +77,7 @@ export const SGetBusiness: RouterService = async (req, res, next) => {
             });
 
         const businessWaitlist = waitlist
-            .filter((w) => w.businessId === businessId)
+            .filter((w) => w.businessId === business.id)
             .map((w) => ({
                 ...w,
                 user: getUserById(w.userId),
@@ -84,11 +85,13 @@ export const SGetBusiness: RouterService = async (req, res, next) => {
             }));
 
         const businessReviews = reviews
-            .filter((r) => r.businessId === businessId)
+            .filter((r) => r.businessId === business.id)
             .map((r) => ({
                 ...r,
                 user: getUserById(r.userId),
             }));
+
+        const businessCustomers = users.filter((c) => "businessIds" in c && c.businessIds.includes(business.id!)) as Customer[];
 
         const result: BusinessWithRelations = {
             ...business,
@@ -98,9 +101,82 @@ export const SGetBusiness: RouterService = async (req, res, next) => {
             messageTemplates: businessMessageTemplates,
             reviews: businessReviews,
             availability: computeBusinessAvailability(business, business.operationSchedule),
+            customers: businessCustomers,
         };
 
         res.json(jsonOK(result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const S_getAvailabilityByServiceId: RouterService = async (req, res, next) => {
+    const { serviceId } = req.body as GetAvailabilityByServiceIdModel;
+    try {
+        const servicesMap = cacheManager.get("servicesMap", new Map());
+        const businessesMap = cacheManager.get("businessesMap", new Map());
+        const service = servicesMap.get(serviceId);
+        if (!service) {
+            const mgs = `Service not found for service ${serviceId}`;
+            logger.error(mgs);
+            res.json(jsonFailed(mgs));
+            return;
+        }
+        const business = businessesMap.get(service.businessId);
+        if (!business) {
+            const mgs = `Business not found for service ${serviceId}`;
+            logger.error(mgs);
+            res.json(jsonFailed(mgs));
+            return;
+        }
+
+        // Use service operation schedule if available, otherwise use business schedule
+        const operationSchedule =
+            service.operationSchedule && service.operationSchedule.length > 0 ? service.operationSchedule : business.operationSchedule;
+
+        const availability = computeBusinessAvailability(business, operationSchedule);
+
+        // Filter availability slots to only include those that can accommodate the service duration
+        const serviceDurationMin = service.durationMin || 30;
+        const paddingBefore = service.paddingBefore || 0;
+        const paddingAfter = service.paddingAfter || 0;
+        const totalDurationMin = serviceDurationMin + paddingBefore + paddingAfter;
+        const totalDurationMs = totalDurationMin * 60 * 1000;
+
+        const filteredAvailability = availability.filter((slot) => {
+            const slotDurationMs = slot.end.toMillis() - slot.start.toMillis();
+            return slotDurationMs >= totalDurationMs;
+        });
+
+        res.json(jsonOK(filteredAvailability));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const S_getBusinessCustomers: RouterService = async (req, res, next) => {
+    const { businessId } = req.body as GetBusinessCustomersModel;
+    try {
+        const allCustomers = cacheManager.get("customers", []) as Customer[];
+        const customers = allCustomers.filter((c) => c.businessIds.includes(businessId));
+        res.json(jsonOK(customers));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const S_getUserById: RouterService = async (req, res, next) => {
+    const { userId } = req.body as GetUserByIdModel;
+    try {
+        const allUsers = cacheManager.get("usersMap", new Map());
+        const user = allUsers.get(userId);
+        if (!user) {
+            const mgs = `User not found for user ${userId}`;
+            logger.error(mgs);
+            res.json(jsonFailed(mgs));
+            return;
+        }
+        return res.json(jsonOK(user));
     } catch (error) {
         next(error);
     }

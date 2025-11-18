@@ -1,4 +1,4 @@
-import { Business, CalendarEvent, MessageTemplate, Review, Service, TS, User, WaitItem } from "./global";
+import { Business, CalendarEvent, Customer, MessageTemplate, Review, Service, TS, User, WaitItem } from "./global";
 
 interface ReviewWithUser extends Review {
     user: User;
@@ -21,6 +21,7 @@ export interface BusinessWithRelations extends Business {
     messageTemplates: MessageTemplate[];
     reviews: ReviewWithUser[];
     availability: AvailabilitySlot[];
+    customers: Customer[];
 }
 
 export interface AvailabilitySlot {

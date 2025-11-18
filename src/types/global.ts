@@ -44,6 +44,7 @@ export interface BusinessOwner extends UserBase {
 export interface Customer extends UserBase {
     type: "customer";
     businessIds: ID[];
+    blockedByBusinessIds?: ID[];
 }
 export type User = BusinessOwner | Customer;
 
