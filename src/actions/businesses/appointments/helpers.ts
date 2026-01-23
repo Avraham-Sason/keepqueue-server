@@ -1,6 +1,7 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { cacheManager } from "../../../managers";
 import { AvailabilitySlot, Business, CalendarEvent, OperationSchedule, TS } from "../../../types";
+import moment from "moment-timezone";
 
 export const parseTs = (value: number): Timestamp => {
     return Timestamp.fromMillis(value);
@@ -86,17 +87,16 @@ const getBlockingEventsForDay = (businessId: string, dayStartMs: number, dayEndM
 };
 
 const buildDailyFreeIntervals = (
-    dayMidnight: Date,
+    dayStartMs: number,
+    weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6,
     operationSchedule: OperationSchedule[],
 ): { start: number; end: number }[] => {
-    const weekday = dayMidnight.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
     const dayRules = operationSchedule.find((r) => r.day === weekday);
     if (!dayRules || !dayRules.intervals || dayRules.intervals.length === 0) return [];
 
-    const baseMs = dayMidnight.getTime();
     return dayRules.intervals
         .filter((tr) => tr.endMin > tr.startMin)
-        .map((tr) => ({ start: baseMs + tr.startMin * MINUTE_MS, end: baseMs + tr.endMin * MINUTE_MS }));
+        .map((tr) => ({ start: dayStartMs + tr.startMin * MINUTE_MS, end: dayStartMs + tr.endMin * MINUTE_MS }));
 };
 
 export const computeBusinessAvailability = (
@@ -105,18 +105,21 @@ export const computeBusinessAvailability = (
     fromTs?: TS,
     toTs?: TS,
 ): AvailabilitySlot[] => {
-    const now = new Date();
-    const fromDate = fromTs ? new Date(fromTs.toMillis()) : now;
-    const toDate = toTs ? new Date(toTs.toMillis()) : addDays(now, 90);
+    const tz: string = (business as any)?.timeZone || (business as any)?.timezone || "Asia/Jerusalem";
+    const nowMs = Date.now();
+    const fromMs = fromTs ? fromTs.toMillis() : nowMs;
+    const toMs = toTs ? toTs.toMillis() : nowMs + 90 * 24 * 60 * MINUTE_MS;
 
-    let cursor = toMidnight(fromDate);
-    const endDate = toMidnight(toDate);
+    // Iterate days in the BUSINESS timezone to avoid hour shifts (DST/UTC).
+    let cursor = moment.tz(fromMs, tz).startOf("day");
+    const endDate = moment.tz(toMs, tz).startOf("day");
 
     const availability: AvailabilitySlot[] = [];
-    while (cursor.getTime() <= endDate.getTime()) {
-        const dayStartMs = cursor.getTime();
-        const dayEndMs = dayStartMs + 24 * 60 * MINUTE_MS;
-        const dailyFree = buildDailyFreeIntervals(cursor, operationSchedule);
+    while (cursor.valueOf() <= endDate.valueOf()) {
+        const dayStartMs = cursor.valueOf();
+        const dayEndMs = cursor.clone().add(1, "day").valueOf();
+        const weekday = cursor.day() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+        const dailyFree = buildDailyFreeIntervals(dayStartMs, weekday, operationSchedule);
         if (dailyFree.length > 0) {
             const busy = getBlockingEventsForDay(business.id!, dayStartMs, dayEndMs);
             for (const free of dailyFree) {
@@ -126,7 +129,7 @@ export const computeBusinessAvailability = (
                 }
             }
         }
-        cursor = addDays(cursor, 1);
+        cursor = cursor.clone().add(1, "day");
     }
 
     return availability;
