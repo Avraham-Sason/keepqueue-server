@@ -7,9 +7,10 @@ export type CalendarEventStatus = "BOOKED" | "CONFIRMED" | "CANCELLED" | "NO_SHO
 
 export type CalendarEventType = "APPOINTMENT" | "VACATION" | "HOLIDAY" | "OTHER";
 
-export type NotificationType = "whatsapp" | "sms" | "email";
+export type NotificationType = "sms" | "email";
 export type NotificationStatus = "QUEUED" | "SENT" | "FAILED" | "DELIVERED";
 export type UserType = "business" | "customer";
+export type StaffRole = "owner" | "manager" | "employee";
 export type CalendarEventSource = "web" | "admin" | "import";
 
 
@@ -164,6 +165,22 @@ export interface MessageTemplate extends DocBase {
     description?: string;
 }
 
+// Collection: staff
+export interface StaffMember extends DocBase {
+    businessId: ID;
+    firstName: string;
+    lastName: string;
+    role: StaffRole;
+    isActive: boolean;
+    operationSchedule: OperationSchedule[];
+    serviceIds?: ID[];
+    email?: string;
+    phone?: string;
+    photoURL?: string;
+    color?: string;
+    notes?: string;
+}
+
 // Collection: audits
 export interface Audit extends DocBase {
     businessId: ID;
@@ -183,4 +200,5 @@ export const firestoreCollections = [
     "notification_logs",
     "message_templates",
     "audits",
+    "staff",
 ] as const;
